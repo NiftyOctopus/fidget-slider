@@ -1,4 +1,4 @@
-let cvs, ctx, mid, block
+let cvs, ctx, mid, block, walls
 
 
 window.onload       = start
@@ -14,12 +14,33 @@ window.ontouchend   = releaseBlock
 function start() {
     initCanvas()
     block = new Block()
-    window.setInterval(updateSim, 0)
+
+    walls = [
+        new Wall(0),
+        //new Wall(cvs.height)
+    ]
+
+    window.setInterval(updateSim, 10)
 }
 
 
 function updateSim() {
-    if(block) block.updateSim()
+    if(!block) return
+    block.updateSim()
+    block.updateForce(updateWalls())
+}
+
+
+function updateWalls() {
+    if(!walls) return 0
+    let f = [0]
+
+    for(let wall of walls) {
+        f.push(wall.getForce(block.y, block.v))
+    }
+
+    const total = f.reduce((partial, f) => partial + f, 0)
+    return total
 }
 
 
@@ -88,7 +109,7 @@ class Block {
     a = 0
     t = [0, 1]
 
-    f = 0.1
+    f = 0
     m = 10
 
     last = { y: 0, t: 0 }
@@ -150,7 +171,7 @@ class Block {
     updatePosition(dt) {
         this.y = this.y + (this.v * dt)
         
-        if(this.y < 0 && this.v < 0) this.v = this.v * -1
+        //if(this.y < 0 && this.v < 0) this.v = this.v * -1
         if(this.y > cvs.height - 200 && this.v > 0) this.v = this.v * -0.7
     }
 
@@ -158,6 +179,10 @@ class Block {
         this.v = this.v + this.a * dt
         this.a = this.f / this.m
         if(this.y > cvs.height - 200 && this.v > 0) this.v = 0
+    }
+
+    updateForce(f) {
+        this.f = f
     }
 
     draw() {
@@ -176,4 +201,13 @@ class Block {
 
 class Wall {
     y
+
+    constructor(y) {
+        this.y = y
+    }
+
+    getForce(y, v) {
+        const d = y - this.y
+        return (-0.002 * d) + (-0.1 * v)
+    }
 }
