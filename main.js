@@ -16,7 +16,8 @@ function start() {
     block = new Block()
 
     walls = [
-        new Wall(0, 0.002, 0.1, { latch: [{ y: 0, v: -1 }], release: [{ y: 20, v: 1 }] }),
+        new Wall(0, 0.002, 0.1, { latch: [{ y: 0, v: -1 }], release: [{ y: 0, v:  1 }] }),
+        new Wall(cvs.height - 200, 0.005, 0.3, { latch: [{ y: 0, v:  1 }], release: [{ y: 0, v: -1 }] }),
     ]
 
     window.setInterval(updateSim, 10)
@@ -32,7 +33,7 @@ function updateSim() {
 
 function updateWalls() {
     if(!walls) return 0
-    let f = [0]
+    let f = [0.1]
 
     for(let wall of walls) {
         f.push(wall.update(block.y, block.v))
@@ -171,13 +172,13 @@ class Block {
         this.y = this.y + (this.v * dt)
         
         //if(this.y < 0 && this.v < 0) this.v = this.v * -1
-        if(this.y > cvs.height - 200 && this.v > 0) this.v = this.v * -0.7
+        //if(this.y > cvs.height - 200 && this.v > 0) this.v = this.v * -0.7
     }
 
     updateMotion(dt) {
         this.v = this.v + this.a * dt
         this.a = this.f / this.m
-        if(this.y > cvs.height - 200 && this.v > 0) this.v = 0
+        //if(this.y > cvs.height - 200 && this.v > 0) this.v = 0
     }
 
     updateForce(f) {
