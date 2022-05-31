@@ -16,8 +16,7 @@ function start() {
     block = new Block()
 
     walls = [
-        new Wall(0),
-        //new Wall(cvs.height)
+        new Wall(0, 0.002, 0.1, { latch: [{ y: 0, v: -1 }], release: [{ y: 20, v: 1 }] }),
     ]
 
     window.setInterval(updateSim, 10)
@@ -36,7 +35,7 @@ function updateWalls() {
     let f = [0]
 
     for(let wall of walls) {
-        f.push(wall.getForce(block.y, block.v))
+        f.push(wall.update(block.y, block.v))
     }
 
     const total = f.reduce((partial, f) => partial + f, 0)
@@ -201,13 +200,52 @@ class Block {
 
 class Wall {
     y
+    k
+    c
+    triggers
+    latched = false
 
-    constructor(y) {
+    constructor(y, k, c, triggers) {
         this.y = y
+        this.k = k
+        this.c = c
+
+        this.triggers = triggers
     }
 
-    getForce(y, v) {
+    update(y, v) {
+        this.updateLatchState(y, v)
+        if(!this.latched) return 0
+
         const d = y - this.y
-        return (-0.002 * d) + (-0.1 * v)
+        return (-1 * this.k * d) + (-1 * this.c * v)
+    }
+
+    updateLatchState(y, v) {
+        if(!this.latched && this.latch(y, v)) {
+            this.latched = true
+            return
+        }
+
+        if(this.latched && this.release(y, v)) this.latched = false
+    }
+
+    latch(y, v) {
+        return this.checkTriggers('latch', y, v)
+    }
+
+    release(y, v) {
+        return this.checkTriggers('release', y, v)
+    }
+
+    checkTriggers(type, y, v) {
+        for(let trigger of this.triggers[type]) {
+            if(Math.sign(v) !== trigger.v) return false
+
+            if(trigger.v > 0 && y > (this.y + trigger.y)) return true
+            if(trigger.v < 0 && y < (this.y + trigger.y)) return true
+        }
+
+        return false
     }
 }
