@@ -1,3 +1,4 @@
+import config from './config.js'
 let cvs, ctx, mid, block, walls
 
 
@@ -14,13 +15,17 @@ window.ontouchend   = releaseBlock
 function start() {
     initCanvas()
     block = new Block()
-
-    walls = [
-        new Wall(0, 0.002, 0.1, { latch: [{ y: 0, v: -1 }], release: [{ y: 0, v:  1 }] }),
-        new Wall(cvs.height - 200, 0.005, 0.3, { latch: [{ y: 0, v:  1 }], release: [{ y: 0, v: -1 }] }),
-    ]
-
+    createWalls()
     window.setInterval(updateSim, 10)
+}
+
+
+function createWalls() {
+    walls = []
+
+    for(let options of config.walls) {
+        walls.push(new Wall(options))
+    }
 }
 
 
@@ -36,7 +41,7 @@ function updateWalls() {
     let f = [0.1]
 
     for(let wall of walls) {
-        f.push(wall.update(block.y, block.v))
+        f.push(wall.update(block.y, block.v, block.h))
     }
 
     const total = f.reduce((partial, f) => partial + f, 0)
@@ -101,7 +106,7 @@ function getTouchY(e) {
 
 
 class Block {
-    h = 200
+    h = 150
     d = 0
 
     y = 100
@@ -170,15 +175,11 @@ class Block {
 
     updatePosition(dt) {
         this.y = this.y + (this.v * dt)
-        
-        //if(this.y < 0 && this.v < 0) this.v = this.v * -1
-        //if(this.y > cvs.height - 200 && this.v > 0) this.v = this.v * -0.7
     }
 
     updateMotion(dt) {
         this.v = this.v + this.a * dt
         this.a = this.f / this.m
-        //if(this.y > cvs.height - 200 && this.v > 0) this.v = 0
     }
 
     updateForce(f) {
@@ -206,47 +207,66 @@ class Wall {
     triggers
     latched = false
 
-    constructor(y, k, c, triggers) {
-        this.y = y
-        this.k = k
-        this.c = c
+    constructor(options) {
+        const y = options.y
+        this.y = y < 0 ? cvs.height + y : y
 
-        this.triggers = triggers
+        this.k = options.k
+        this.c = options.c
+
+        this.triggers = options.triggers
     }
 
-    update(y, v) {
-        this.updateLatchState(y, v)
+    update(y, v, h) {
+        this.updateLatchState(y, v, h)
         if(!this.latched) return 0
 
         const d = y - this.y
         return (-1 * this.k * d) + (-1 * this.c * v)
     }
 
-    updateLatchState(y, v) {
-        if(!this.latched && this.latch(y, v)) {
+    updateLatchState(y, v, h) {
+        if(!this.latched && this.latch(y, v, h)) {
             this.latched = true
             return
         }
 
-        if(this.latched && this.release(y, v)) this.latched = false
+        if(this.latched && this.release(y, v, h)) this.latched = false
     }
 
-    latch(y, v) {
-        return this.checkTriggers('latch', y, v)
+    latch(y, v, h) {
+        return this.checkTriggers('latch', y, v, h)
     }
 
-    release(y, v) {
-        return this.checkTriggers('release', y, v)
+    release(y, v, h) {
+        return this.checkTriggers('release', y, v, h)
     }
 
-    checkTriggers(type, y, v) {
+    checkTriggers(type, y, v, h) {
         for(let trigger of this.triggers[type]) {
+            if(v === 0) return false
             if(Math.sign(v) !== trigger.v) return false
 
-            if(trigger.v > 0 && y > (this.y + trigger.y)) return true
-            if(trigger.v < 0 && y < (this.y + trigger.y)) return true
+            if(this.checkForwardTrigger(y, trigger, h)) return true
+            if(this.checkReverseTrigger(y, trigger, h)) return true
         }
 
         return false
+    }
+
+    checkForwardTrigger(y, trigger, h) {
+        if(trigger.v < 0) return false
+
+        const low  = this.y + trigger.y
+        const high = low + 50
+        return y > low && y < high
+    }
+
+    checkReverseTrigger(y, trigger, h) {
+        if(trigger.v > 0) return false
+
+        const high = this.y + trigger.y
+        const low  = high - 50
+        return y > low && y < high
     }
 }
