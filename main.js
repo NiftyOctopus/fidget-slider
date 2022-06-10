@@ -110,11 +110,11 @@ class Block {
     d = 0
 
     y = [100, 100]
-    v = 0
-    a = 0
+    v =  0
+    a =  0
     t = [0, 1]
 
-    f = 0
+    f = [0, 0]
     m = 10
 
     last = { y: 0, t: 0 }
@@ -181,11 +181,16 @@ class Block {
 
     updateMotion(dt) {
         this.v = this.v + this.a * dt
-        this.a = this.f / this.m
+        this.a = this.getForce() / this.m
+    }
+
+    getForce() {
+        return (this.f[0] + this.f[1]) / 2
     }
 
     updateForce(f) {
-        this.f = f
+        this.f.shift()
+        this.f.push(f)
     }
 
     draw() {
