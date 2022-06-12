@@ -38,7 +38,7 @@ function updateSim() {
 
 function updateWalls() {
     if(!walls) return 0
-    let f = [0.1]
+    let f = [0.02]
 
     for(let wall of walls) {
         f.push(wall.update(block.y, block.v, block.h))
@@ -213,6 +213,7 @@ class Wall {
     c
     triggers
     latched = false
+    offset  = 0
 
     constructor(options) {
         const y = options.y
@@ -228,13 +229,14 @@ class Wall {
         this.updateLatchState(y, v, h)
         if(!this.latched) return 0
 
-        const d = y[1] - this.y
+        const d = (y[1] + this.offset) - this.y
         return (-1 * this.k * d) + (-1 * this.c * v)
     }
 
     updateLatchState(y, v, h) {
         if(!this.latched && this.latch(y, v, h)) {
             this.latched = true
+            this.offset  = v > 0 ? h : 0
             return
         }
 
@@ -254,26 +256,32 @@ class Wall {
     checkTriggers(type, y, v, h) {
         for(let trigger of this.triggers[type]) {
             if(v === 0) return false
-            if(Math.sign(v) !== trigger.v) return false
-
-            if(this.checkForwardTrigger(y, trigger, h)) return true
-            if(this.checkReverseTrigger(y, trigger, h)) return true
+            if(Math.sign(v) !== trigger.v) continue
+    
+            const ref = this.y + trigger.y
+            const off = this.getTriggerOffset(type, v, h)
+            if(this.between(type, y, off, ref)) return true
         }
 
         return false
     }
 
-    checkForwardTrigger(y, trigger, h) {
-        if(trigger.v < 0) return false
+    getTriggerOffset(type, v, h) {
+        if(type === 'latch') {
+            return v > 0 ? h : 0
+        }
 
-        const ref = this.y + trigger.y
-        return y[0] < ref && y[1] > ref
+        if(type === 'release') {
+            return this.offset
+        }
+
+        return 0
     }
 
-    checkReverseTrigger(y, trigger, h) {
-        if(trigger.v > 0) return false
-
-        const ref = this.y + trigger.y
-        return y[0] > ref && y[1] < ref
+    between(type, y, offset, ref) {
+        const high = Math.max(...y) + offset
+        const low  = Math.min(...y) + offset
+        
+        return ref > low && ref < high
     }
 }
