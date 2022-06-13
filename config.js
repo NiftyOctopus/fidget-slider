@@ -16,7 +16,7 @@ const walls = [
             latch:   [{ y: 0, v:  1 }],
             release: [{ y: 0, v: -1 }]
         }
-    }
+    },
     {
         y: 200,
         k: 0.005,
