@@ -38,7 +38,7 @@ function updateSim() {
 
 function updateWalls() {
     if(!walls) return 0
-    let f = [0.02]
+    let f = [0.035]
 
     for(let wall of walls) {
         f.push(wall.update(block.y, block.v, block.h))
@@ -106,7 +106,7 @@ function getTouchY(e) {
 
 
 class Block {
-    h = 150
+    h = 100
     d = 0
 
     y = [100, 100]
