@@ -211,6 +211,7 @@ class Wall {
     y
     k
     c
+    trigger
     triggers
     latched = false
     offset  = 0
@@ -222,18 +223,41 @@ class Wall {
         this.k = options.k
         this.c = options.c
 
+        this.trigger  = options.trigger
         this.triggers = options.triggers
     }
 
     update(y, v, h) {
-        this.updateLatchState(y, v, h)
+        this.offset  = this.updateLatchOffset(h)
+        this.latched = this.updateLatchState(y)
         if(!this.latched) return 0
 
         const d = (y[1] + this.offset) - this.y
         return (-1 * this.k * d) + (-1 * this.c * v)
     }
 
-    updateLatchState(y, v, h) {
+    updateLatchState(y) {
+        const dir = this.trigger.dir
+        const ref = y[1] + this.offset
+
+        if(dir === 'fwd') return ref > this.y
+        if(dir === 'rev') return ref < this.y
+
+        const low  = this.y - this.trigger.y
+        const high = this.y + this.trigger.y
+        
+        return ref > low && ref < high 
+    }
+
+    updateLatchOffset(h) {
+        const dir = this.trigger.dir
+        
+        if(dir === 'fwd') return h
+        if(dir === 'rev') return 0
+        return h / 2
+    }
+
+    updateLatchStateObsolete(y, v, h) {
         if(!this.latched && this.latch(y, v, h)) {
             this.latched = true
             this.offset  = v > 0 ? h : 0
